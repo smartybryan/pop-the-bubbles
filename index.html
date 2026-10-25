@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Pop!</title>
+
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7cc6ff">
+
+<!-- launched from a home screen this runs without browser chrome, so there is
+     no address bar for a small child to wander into -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pop!">
+
+<!-- Asset URLs carry a version stamp so a home-screen copy can't keep serving
+     an old file. BUMP THE STAMP ON EVERY ?v= WHENEVER A .js OR styles.css
+     CHANGES. See "Shipping a new version" in the README. -->
+<link rel="stylesheet" href="styles.css?v=20261024-1">
+</head>
+<body>
+
+<!-- ============ MENU SCREEN ============ -->
+<section id="menu-screen" class="screen">
+  <div class="deco" aria-hidden="true">
+    <span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+
+  <button id="btn-refresh" class="corner-btn refresh-btn" title="Get the newest version"
+          aria-label="Get the newest version">&#8635;</button>
+
+  <!-- grown-up gate: press and hold for two seconds -->
+  <button id="btn-gear" class="corner-btn gear-btn" title="Grown-ups: press and hold"
+          aria-label="Settings (press and hold)">
+    <svg class="gate-ring" viewBox="0 0 60 60" aria-hidden="true">
+      <circle cx="30" cy="30" r="26" pathLength="100"></circle>
+    </svg>
+    <span>&#9881;</span>
+  </button>
+
+  <h1 class="title">Pop!</h1>
+
+  <div id="levels" class="levels" role="radiogroup" aria-label="How big are you?"></div>
+  <div id="modes" class="modes"></div>
+</section>
+
+<!-- ============ PLAY SCREEN ============ -->
+<section id="play-screen" class="screen hidden">
+  <div id="area" class="area"></div>
+
+  <header class="play-bar">
+    <button id="btn-home" class="corner-btn home-btn" title="Back" aria-label="Back to the menu">&#8962;</button>
+    <button id="prompt" class="prompt hidden" title="Say it again" aria-label="Say it again">
+      <span id="prompt-target" class="prompt-target"></span>
+      <span id="prompt-progress" class="prompt-progress"></span>
+    </button>
+  </header>
+</section>
+
+<!-- ============ GROWN-UP SETTINGS ============ -->
+<div id="settings" class="settings hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+  <div class="settings-card">
+    <h2 id="settings-title">Grown-ups</h2>
+    <label class="setting"><input type="checkbox" id="set-sound"> Sounds</label>
+    <label class="setting"><input type="checkbox" id="set-voice"> Spoken prompts</label>
+    <label class="setting setting-name">Child's name
+      <input type="text" id="set-name" maxlength="20" autocomplete="off" placeholder="optional">
+    </label>
+    <p class="settings-note">The name is used now and then in a cheer: "Great job, Sam!"</p>
+    <button id="settings-done" class="big-btn">Done</button>
+  </div>
+</div>
+
+<script src="audio.js?v=20261024-1"></script>
+<script src="celebrate.js?v=20261024-1"></script>
+<script src="app.js?v=20261024-1"></script>
+</body>
+</html>

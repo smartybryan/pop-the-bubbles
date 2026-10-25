@@ -1,0 +1,457 @@
+/* --------------------------------------------------------------------------
+ * Pop the bubbles -- big targets, soft colors, no tiny text anywhere.
+ * ----------------------------------------------------------------------- */
+
+:root {
+  --ink: #23262b;
+  --paper: #fffdf7;
+  --sky-1: #bfe6ff;
+  --sky-2: #fde7f3;
+  --accent: #ffd23f;
+  --shadow: 0 6px 0 rgba(0, 0, 0, .12);
+  --radius: 22px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Comic Sans MS", "Chalkboard SE", "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  color: var(--ink);
+  background: linear-gradient(170deg, var(--sky-1), var(--sky-2));
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  overflow: hidden;
+}
+
+.hidden { display: none !important; }
+
+.screen {
+  position: absolute;
+  inset: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+
+/* ------------------------------------------------------------- menu screen */
+
+#menu-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: max(20px, env(safe-area-inset-top)) 16px 24px;
+  overflow-y: auto;
+}
+
+.title {
+  margin: 4px 0 0;
+  font-size: clamp(56px, 13vmin, 110px);
+  line-height: 1;
+  letter-spacing: .03em;
+  color: #fff;
+  -webkit-text-stroke: 4px var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 0 6px 0 rgba(0, 0, 0, .12);
+  position: relative;
+}
+
+.corner-btn {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  z-index: 3;
+  font-size: 26px;
+  line-height: 1;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  background: var(--paper);
+  border: 4px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: var(--shadow);
+}
+
+.corner-btn:active { transform: translateY(4px); box-shadow: none; }
+
+.refresh-btn { right: 16px; opacity: .55; }
+.refresh-btn:hover { opacity: 1; }
+
+.gear-btn { left: 16px; opacity: .55; display: grid; place-items: center; }
+.gear-btn:hover, .gear-btn.holding { opacity: 1; }
+.gear-btn span { position: relative; }
+
+/* the ring fills while a grown-up holds the gear; letting go snaps it back */
+.gate-ring {
+  position: absolute;
+  inset: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+
+.gate-ring circle {
+  fill: none;
+  stroke: #3a86ff;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+}
+
+.gear-btn.holding .gate-ring circle {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 2s linear;
+}
+
+.levels {
+  display: flex;
+  gap: 14px;
+  position: relative;
+}
+
+.level-btn {
+  font-size: 44px;
+  width: 84px;
+  height: 84px;
+  padding: 0;
+  background: var(--paper);
+  border: 4px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: var(--shadow);
+  opacity: .55;
+  transition: transform .15s, opacity .15s;
+}
+
+.level-btn[aria-checked="true"] {
+  opacity: 1;
+  background: var(--accent);
+  transform: scale(1.12);
+}
+
+.modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  width: 100%;
+  max-width: 760px;
+  position: relative;
+}
+
+@media (max-width: 560px) {
+  .modes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+}
+
+.mode-tile {
+  aspect-ratio: 1 / 1;
+  min-height: 120px;
+  background: var(--paper);
+  border: 4px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4%;
+  padding: 8%;
+}
+
+.mode-tile:active { transform: translateY(4px); box-shadow: none; }
+
+.mode-tile .mini {
+  width: 34%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  font-size: clamp(22px, 6vmin, 46px);
+}
+
+.mode-tile .mini:nth-child(2) { transform: translateY(-22%); }
+
+/* decorative bubbles drifting up behind the menu */
+.deco { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.deco span {
+  position: absolute;
+  bottom: -120px;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, .8);
+  background: radial-gradient(circle at 32% 30%, rgba(255, 255, 255, .9) 0 9%, transparent 10%),
+              radial-gradient(circle, rgba(255, 255, 255, .15), rgba(255, 255, 255, .45));
+  animation: drift 14s linear infinite;
+}
+.deco span:nth-child(1) { left: 6%;  animation-delay: 0s; }
+.deco span:nth-child(2) { left: 24%; width: 60px; height: 60px; animation-delay: -5s; animation-duration: 11s; }
+.deco span:nth-child(3) { left: 46%; width: 120px; height: 120px; animation-delay: -9s; animation-duration: 18s; }
+.deco span:nth-child(4) { left: 66%; animation-delay: -2s; animation-duration: 13s; }
+.deco span:nth-child(5) { left: 82%; width: 70px; height: 70px; animation-delay: -7s; }
+.deco span:nth-child(6) { left: 92%; width: 50px; height: 50px; animation-delay: -11s; animation-duration: 10s; }
+
+@keyframes drift {
+  to { transform: translateY(calc(-100vh - 160px)); }
+}
+
+
+/* ----------------------------------------------------------------- bubbles */
+
+/* `.bubble` is placed by app.js with a transform; `.bubble-face` inside it is
+ * free for the wobble and pop animations, so the two never fight. */
+.bubble,
+.mini {
+  --c: #3a86ff;
+}
+
+.bubble {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+  pointer-events: none;   /* hit testing is done in app.js, with a bigger circle */
+}
+
+.bubble-face,
+.mini {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid color-mix(in srgb, var(--c) 80%, #000);
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, .95) 0 8%, transparent 9%),
+    radial-gradient(circle at 50% 50%,
+      color-mix(in srgb, var(--c) 18%, #fff) 0%,
+      color-mix(in srgb, var(--c) 35%, #fff) 65%,
+      color-mix(in srgb, var(--c) 70%, #fff) 100%);
+  display: grid;
+  place-items: center;
+  font-weight: bold;
+  line-height: 1;
+  color: var(--ink);
+}
+
+/* colors mode: the color has to read at a glance, so fill it right in */
+.bubble-face.solid,
+.mini.solid {
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, .95) 0 8%, transparent 9%),
+    radial-gradient(circle at 50% 50%,
+      color-mix(in srgb, var(--c) 70%, #fff) 0%,
+      var(--c) 100%);
+}
+
+.bubble-face svg,
+.mini svg { width: 64%; height: 64%; }
+
+.shape {
+  fill: var(--c);
+  stroke: var(--ink);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+
+.bubble-face.wobble { animation: wobble .5s ease-in-out; }
+
+@keyframes wobble {
+  0%, 100% { transform: rotate(0) scale(1); }
+  20% { transform: rotate(-14deg) scale(.94); }
+  40% { transform: rotate(11deg) scale(1.04); }
+  60% { transform: rotate(-7deg); }
+  80% { transform: rotate(4deg); }
+}
+
+.bubble-face.popping { animation: pop .22s ease-out forwards; }
+
+@keyframes pop {
+  0%   { transform: scale(1); opacity: 1; }
+  50%  { transform: scale(1.3); opacity: .7; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.drop {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: splash .5s ease-out forwards;
+}
+
+@keyframes splash {
+  from { transform: translate(var(--x), var(--y)) scale(1); opacity: 1; }
+  to   { transform: translate(calc(var(--x) + var(--dx)), calc(var(--y) + var(--dy))) scale(.2); opacity: 0; }
+}
+
+
+/* ------------------------------------------------------------- play screen */
+
+.area {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.play-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: max(12px, env(safe-area-inset-top)) 80px 0;
+  pointer-events: none;
+}
+
+.play-bar > * { pointer-events: auto; }
+
+.home-btn { left: 16px; font-size: 30px; }
+
+.prompt {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 76px;
+  max-width: 100%;
+  padding: 8px 18px;
+  background: rgba(255, 253, 247, .9);
+  border: 4px solid var(--ink);
+  border-radius: 40px;
+  box-shadow: var(--shadow);
+}
+
+.prompt:active { transform: translateY(4px); box-shadow: none; }
+
+.prompt-target {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 48px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.prompt-target .mini { width: 56px; height: 56px; font-size: 34px; }
+
+.prompt-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 50vw;
+}
+
+.pip {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  transition: background .2s, transform .2s;
+}
+
+.pip.on { background: var(--accent); transform: scale(1.15); }
+
+/* counting: one big slot per bubble to pop */
+.prompt-progress.count .pip { width: 32px; height: 32px; }
+
+/* spelling: the whole word shows faintly, and fills in letter by letter */
+.slot {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 56px;
+  border-bottom: 5px solid var(--ink);
+  color: rgba(35, 38, 43, .22);
+  font-size: 44px;
+}
+
+.slot.on { color: var(--ink); }
+.slot.next { color: rgba(35, 38, 43, .45); animation: nudge 1s ease-in-out infinite; }
+
+@keyframes nudge {
+  50% { transform: translateY(-5px); }
+}
+
+@media (max-width: 560px) {
+  .prompt { min-height: 64px; gap: 10px; padding: 6px 12px; }
+  .prompt-target { font-size: 36px; }
+  .prompt-target .mini { width: 44px; height: 44px; font-size: 26px; }
+  .slot { width: 34px; height: 46px; font-size: 34px; }
+  .prompt-progress.count .pip { width: 24px; height: 24px; }
+}
+
+
+/* ------------------------------------------------------- grown-up settings */
+
+.settings {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(35, 38, 43, .45);
+}
+
+.settings-card {
+  width: min(420px, 100%);
+  background: var(--paper);
+  border: 4px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.settings-card h2 { margin: 0; font-size: 28px; }
+
+.setting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 22px;
+}
+
+.setting input[type="checkbox"] { width: 28px; height: 28px; }
+
+.setting-name { flex-wrap: wrap; }
+
+.setting-name input {
+  flex: 1;
+  min-width: 140px;
+  font: inherit;
+  font-size: 20px;
+  padding: 6px 10px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+}
+
+.settings-note { margin: 0; font-size: 15px; opacity: .7; }
+
+.big-btn {
+  font-size: 24px;
+  padding: 10px;
+  background: var(--accent);
+  border: 4px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.big-btn:active { transform: translateY(4px); box-shadow: none; }
