@@ -1,0 +1,183 @@
+/* --------------------------------------------------------------------------
+ * The recording page. A grown-up tool, so it scrolls and selects text like a
+ * normal page, unlike the game.
+ * ----------------------------------------------------------------------- */
+
+body.recorder {
+  overflow: auto;
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+.rec-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: max(14px, env(safe-area-inset-top)) 16px 4px;
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.rec-header h1 { margin: 0; font-size: 28px; }
+
+.rec-back {
+  color: var(--ink);
+  font-size: 18px;
+  text-decoration: none;
+  padding: 6px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: var(--paper);
+}
+
+.rec-main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 12px 16px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rec-card {
+  background: var(--paper);
+  border: 4px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 20px;
+}
+
+.rec-card p { line-height: 1.45; }
+
+.setup summary { cursor: pointer; font-size: 19px; font-weight: bold; }
+.setup a { color: #1d5fd6; }
+
+.rec-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+  font-size: 18px;
+}
+
+.rec-field input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 17px;
+  padding: 6px 10px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+}
+
+.rec-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.rec-message { margin: 10px 0 0; font-size: 16px; min-height: 1em; }
+.rec-message.bad { color: #c22; }
+.rec-message.good { color: #18803a; }
+
+.summary { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.summary-text { flex: 1; min-width: 220px; font-size: 19px; }
+.summary .big-btn { padding: 10px 22px; }
+.summary .big-btn:disabled { opacity: .45; cursor: default; }
+.summary .rec-message { flex-basis: 100%; margin: 0; }
+
+/* the studio stays in view while the checklist scrolls under it */
+.studio {
+  position: sticky;
+  top: 8px;
+  z-index: 2;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.studio-group { font-size: 15px; opacity: .65; text-transform: uppercase; letter-spacing: .06em; }
+.studio-text { font-size: clamp(28px, 6vw, 46px); font-weight: bold; line-height: 1.15; }
+.studio-tip { font-size: 16px; opacity: .75; max-width: 560px; }
+
+.meter {
+  width: min(360px, 100%);
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(35, 38, 43, .12);
+  overflow: hidden;
+}
+
+.meter-bar {
+  width: 0;
+  height: 100%;
+  background: #3cc85a;
+  transition: width .05s linear;
+}
+
+.studio-buttons { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+.studio-buttons .small-btn { align-self: center; }
+.studio-buttons .small-btn:disabled { opacity: .4; cursor: default; }
+
+.record-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  padding: 12px 26px;
+  background: #fff;
+  border: 4px solid var(--ink);
+  border-radius: 40px;
+  box-shadow: var(--shadow);
+}
+
+.record-btn:active { transform: translateY(4px); box-shadow: none; }
+
+.record-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e33;
+}
+
+.record-btn.recording { background: #ffe1e1; }
+.record-btn.recording .record-dot { border-radius: 5px; animation: blink 1s ease-in-out infinite; }
+
+@keyframes blink { 50% { opacity: .35; } }
+
+.studio-state { margin: 0; font-size: 16px; min-height: 1.2em; }
+.rec-keys { margin: 0; font-size: 13px; opacity: .55; }
+
+.checklist { display: flex; flex-direction: column; gap: 14px; }
+
+.check-group h2 { margin: 6px 0 2px; font-size: 20px; }
+.check-group p { margin: 0 0 8px; font-size: 14px; opacity: .7; }
+
+.check-items { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  padding: 6px 12px;
+  background: var(--paper);
+  border: 3px solid rgba(35, 38, 43, .35);
+  border-radius: 14px;
+}
+
+.check-item.current { border-color: var(--ink); background: var(--accent); }
+
+/* ○ nothing yet · ● a take waiting to send · ✓ on GitHub */
+.check-item::before {
+  content: '○';
+  font-size: 14px;
+  opacity: .5;
+}
+.check-item.draft::before { content: '●'; color: #e07b00; opacity: 1; }
+.check-item.published::before { content: '✓'; color: #18803a; opacity: 1; }
+.check-item.published.draft::before { content: '●'; color: #e07b00; }
+
+/* on a short screen (a phone on its side) a stuck studio would hide the list */
+@media (max-height: 700px) {
+  .studio { position: static; }
+}

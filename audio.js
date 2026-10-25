@@ -4,14 +4,22 @@
  * the other games as-is.
  *
  *   Sound.unlock()        call from the first tap; iOS stays silent until then
+ *   Sound.context()       the AudioContext, made if need be but not started
+ *                         (enough for decoding clips before the first tap)
+ *   Sound.output()        where recorded clips play: straight out, no limiter
  *   Sound.tone({...})     one oscillator note with an envelope
  *   Sound.pop(size)       bubble "bloop", size 0 (small, high) .. 1 (big, low)
  *   Sound.boop()          soft wrong-answer bump; never a buzzer
  *   Sound.cheer()         a little rising arpeggio
  *   Sound.say(text)       speechSynthesis, cancels whatever it was saying
+ *   Sound.voices()        the English voices this device has
+ *   Sound.setSpeech({ voiceName, rate, pitch })
+ *   Sound.onVoices(fn)    the voice list loads late on some browsers
  *
- * If a game "has no sound" on an iPhone, check the silent switch first: it
- * mutes Web Audio (but not speech).
+ * The iPhone silent switch mutes Web Audio. Where Safari lets a page say it
+ * plays media (navigator.audioSession, Safari 16.4+), this asks for that, so
+ * the switch leaves the game alone the way it does a video. On an older
+ * iPhone, if a game "has no sound", check the switch first.
  * ----------------------------------------------------------------------- */
 
 const Sound = (() => {
@@ -19,11 +27,16 @@ const Sound = (() => {
   let master = null;
   let soundOn = true;
   let voiceOn = true;
+  let voiceName = '';   // '' is the device's default voice
+  let rate = 0.9;
+  let pitch = 1.15;
+  let voiceOut = null;
 
-  function unlock() {
+  function context() {
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
+      try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
       ctx = new AC();
       // a limiter, so ten fingers popping at once doesn't clip
       const limiter = ctx.createDynamicsCompressor();
@@ -31,9 +44,17 @@ const Sound = (() => {
       master.gain.value = 0.7;
       master.connect(limiter);
       limiter.connect(ctx.destination);
+      // recorded voice is already leveled; a limiter would only squash it
+      voiceOut = ctx.createGain();
+      voiceOut.connect(ctx.destination);
     }
-    if (ctx.state === 'suspended') ctx.resume();
     return ctx;
+  }
+
+  function unlock() {
+    const c = context();
+    if (c && c.state === 'suspended') c.resume();
+    return c;
   }
 
   function tone({ freq, to, type = 'sine', dur = 0.2, vol = 0.4, delay = 0, attack = 0.005 }) {
@@ -83,11 +104,26 @@ const Sound = (() => {
     try {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      u.rate = 0.9;
-      u.pitch = 1.15;
+      const voice = voiceName && speechSynthesis.getVoices().find(v => v.name === voiceName);
+      if (voice) u.voice = voice;
+      u.lang = voice ? voice.lang : 'en-US';
+      u.rate = rate;
+      u.pitch = pitch;
       speechSynthesis.speak(u);
     } catch (e) { /* no voice on this device; the pictures still carry it */ }
+  }
+
+  // The English voices the device offers (the prompts are English text), or
+  // every voice if it has no English ones.
+  function voices() {
+    if (!('speechSynthesis' in window)) return [];
+    const all = speechSynthesis.getVoices();
+    const english = all.filter(v => /^en([-_]|$)/i.test(v.lang));
+    return (english.length ? english : all).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  function onVoices(fn) {
+    if ('speechSynthesis' in window) speechSynthesis.addEventListener?.('voiceschanged', fn);
   }
 
   function hush() {
@@ -95,8 +131,14 @@ const Sound = (() => {
   }
 
   return {
-    unlock, tone, note, pop, boop, cheer, say, hush,
+    unlock, context, tone, note, pop, boop, cheer, say, hush, voices, onVoices,
+    output: () => voiceOut,
     setSound(on) { soundOn = on; },
     setVoice(on) { voiceOn = on; if (!on) hush(); },
+    setSpeech(opts) {
+      if (opts.voiceName !== undefined) voiceName = opts.voiceName;
+      if (opts.rate !== undefined) rate = opts.rate;
+      if (opts.pitch !== undefined) pitch = opts.pitch;
+    },
   };
 })();

@@ -17,9 +17,9 @@
 <meta name="apple-mobile-web-app-title" content="Pop!">
 
 <!-- Asset URLs carry a version stamp so a home-screen copy can't keep serving
-     an old file. BUMP THE STAMP ON EVERY ?v= WHENEVER A .js OR styles.css
+     an old file. BUMP EVERY VERSION STAMP WHENEVER A .js FILE OR styles.css
      CHANGES. See "Shipping a new version" in the README. -->
-<link rel="stylesheet" href="styles.css?v=20261024-1">
+<link rel="stylesheet" href="styles.css?v=20261025-3">
 </head>
 <body>
 
@@ -66,16 +66,29 @@
     <h2 id="settings-title">Grown-ups</h2>
     <label class="setting"><input type="checkbox" id="set-sound"> Sounds</label>
     <label class="setting"><input type="checkbox" id="set-voice"> Spoken prompts</label>
-    <label class="setting setting-name">Child's name
-      <input type="text" id="set-name" maxlength="20" autocomplete="off" placeholder="optional">
-    </label>
-    <p class="settings-note">The name is used now and then in a cheer: "Great job, Sam!"</p>
+    <div id="voice-options" class="voice-options">
+      <label class="setting setting-wide">Voice
+        <select id="set-voice-name"></select>
+      </label>
+      <label class="setting setting-wide">Speed
+        <input type="range" id="set-rate" min="0.5" max="1.4" step="0.05">
+      </label>
+      <label class="setting setting-wide">Pitch
+        <input type="range" id="set-pitch" min="0.5" max="2" step="0.05">
+      </label>
+      <button id="voice-try" class="small-btn">&#9654; Try it</button>
+      <p id="voice-none" class="settings-note hidden">This device has no voices to choose from.</p>
+      <p class="settings-note">Recorded clips are used where there are any; this voice says the rest.
+        <a href="record.html">Record clips</a></p>
+    </div>
     <button id="settings-done" class="big-btn">Done</button>
   </div>
 </div>
 
-<script src="audio.js?v=20261024-1"></script>
-<script src="celebrate.js?v=20261024-1"></script>
-<script src="app.js?v=20261024-1"></script>
+<script src="audio.js?v=20261025-3"></script>
+<script src="celebrate.js?v=20261025-3"></script>
+<script src="phrases.js?v=20261025-3"></script>
+<script src="voice.js?v=20261025-3"></script>
+<script src="app.js?v=20261025-3"></script>
 </body>
 </html>

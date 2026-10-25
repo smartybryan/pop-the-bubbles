@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Record the Voice</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<!-- Same version stamps as index.html: bump them together. -->
+<link rel="stylesheet" href="styles.css?v=20261025-3">
+<link rel="stylesheet" href="record.css?v=20261025-3">
+</head>
+<body class="recorder">
+
+<header class="rec-header">
+  <a class="rec-back" href="./">&#8592; Game</a>
+  <h1>Record the voice</h1>
+</header>
+
+<main class="rec-main">
+
+  <!-- ============ GITHUB SETUP ============ -->
+  <details id="setup" class="rec-card setup">
+    <summary><span id="setup-status">GitHub: not set up</span></summary>
+    <p>
+      Recordings are saved on this device until you send them. Sending commits
+      them to the repo in one go, and GitHub Pages republishes the game a minute
+      or two later.
+    </p>
+    <p>
+      To send, this page needs a <b>fine-grained personal access token</b>:
+      in GitHub, go to <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Settings
+      → Developer settings → Fine-grained tokens → Generate new token</a>, choose
+      <b>Only select repositories</b> and pick this game's repo, then under
+      <b>Repository permissions</b> set <b>Contents</b> to <b>Read and write</b>.
+      Give it an expiry date. The token stays in this browser only.
+    </p>
+    <label class="rec-field">Repo <input id="gh-repo" placeholder="owner/repo" autocomplete="off" spellcheck="false"></label>
+    <label class="rec-field">Branch <input id="gh-branch" placeholder="main" autocomplete="off" spellcheck="false"></label>
+    <label class="rec-field">Token <input id="gh-token" type="password" placeholder="github_pat_…" autocomplete="off" spellcheck="false"></label>
+    <div class="rec-row">
+      <button id="gh-save" class="small-btn">Save and check</button>
+      <button id="gh-forget" class="small-btn">Forget token</button>
+    </div>
+    <p id="gh-message" class="rec-message"></p>
+  </details>
+
+  <!-- ============ PROGRESS + SEND ============ -->
+  <section class="rec-card summary">
+    <div id="summary-text" class="summary-text"></div>
+    <button id="send" class="big-btn" disabled>Send to GitHub</button>
+    <p id="send-message" class="rec-message"></p>
+  </section>
+
+  <!-- ============ THE STUDIO ============ -->
+  <section class="rec-card studio" aria-live="polite">
+    <div id="studio-group" class="studio-group"></div>
+    <div id="studio-text" class="studio-text"></div>
+    <div id="studio-tip" class="studio-tip"></div>
+
+    <div class="meter" aria-hidden="true"><div id="meter-bar" class="meter-bar"></div></div>
+
+    <div class="studio-buttons">
+      <button id="btn-prev" class="small-btn" title="Previous (←)">&#8592;</button>
+      <button id="btn-record" class="record-btn" title="Record / stop (space)">
+        <span class="record-dot"></span><span id="record-label">Record</span>
+      </button>
+      <button id="btn-next" class="small-btn" title="Next (→)">&#8594;</button>
+    </div>
+
+    <div class="studio-buttons">
+      <button id="btn-play" class="small-btn" title="Play (P)">&#9654; Play</button>
+      <button id="btn-discard" class="small-btn">Discard take</button>
+      <button id="btn-next-missing" class="small-btn">Next not recorded &#8594;</button>
+    </div>
+    <p id="studio-state" class="studio-state"></p>
+    <p class="rec-keys">Keys: <b>space</b> record/stop · <b>P</b> play · <b>← →</b> previous/next</p>
+  </section>
+
+  <!-- ============ CHECKLIST ============ -->
+  <section id="checklist" class="checklist"></section>
+</main>
+
+<script src="audio.js?v=20261025-3"></script>
+<script src="phrases.js?v=20261025-3"></script>
+<!-- LAME mp3 encoder (lamejs), LGPL; see vendor/lame-LICENSE.txt -->
+<script src="vendor/lame.min.js?v=20261025-3"></script>
+<script src="record.js?v=20261025-3"></script>
+</body>
+</html>

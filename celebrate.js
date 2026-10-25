@@ -6,12 +6,14 @@
  *   celebrate()                         a small one
  *   celebrate({ big: true })            more confetti and a bouncing star
  *   celebrate({ words: 'C A T, cat!' }) say this instead of a stock phrase
- *   celebrate.childName = 'Lily'        sometimes cheers by name
+ *
+ * To speak some other way (recorded clips, say), replace celebrate.say, and
+ * celebrate.phrases with whatever it takes in place of text.
  * ----------------------------------------------------------------------- */
 
 const celebrate = (() => {
   const COLORS = ['#ff4d4d', '#ffd23f', '#3cc85a', '#3a86ff', '#9b5de5', '#ff70a6', '#ff9f1c'];
-  const PHRASES = ['Great job!', 'Hooray!', 'You did it!', 'Wow!', 'Yay!', 'Super!', 'Amazing!'];
+  const STOCK_PHRASES = ['Great job!', 'Hooray!', 'You did it!', 'Wow!', 'Yay!', 'Super!', 'Amazing!'];
   const STARS = ['⭐', '🌟', '🎉', '🥳', '🦄', '🌈'];
 
   const style = document.createElement('style');
@@ -42,8 +44,7 @@ const celebrate = (() => {
 
   function celebrate({ big = false, words } = {}) {
     Sound.cheer();
-    const name = celebrate.childName && Math.random() < 0.5 ? celebrate.childName : '';
-    Sound.say(words || (name ? `${pick(PHRASES).replace('!', '')}, ${name}!` : pick(PHRASES)));
+    celebrate.say(words || pick(celebrate.phrases));
 
     const layer = document.createElement('div');
     layer.className = 'cel-layer';
@@ -69,6 +70,7 @@ const celebrate = (() => {
     setTimeout(() => layer.remove(), 3500);
   }
 
-  celebrate.childName = '';
+  celebrate.phrases = STOCK_PHRASES;
+  celebrate.say = text => Sound.say(text);
   return celebrate;
 })();

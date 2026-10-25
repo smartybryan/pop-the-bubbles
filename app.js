@@ -12,7 +12,6 @@ const randInt = (lo, hi) => Math.floor(rand(lo, hi + 1));
 const pick = list => list[Math.floor(Math.random() * list.length)];
 const pickOther = (list, not) => pick(list.filter(x => x !== not));
 
-
 /* ------------------------------------------------------------------ levels */
 
 // Speeds and sizes are in px at a ~700px screen; app.js scales them to fit.
@@ -34,52 +33,10 @@ const LEVELS = {
 
 /* -------------------------------------------------------------------- art */
 
-// The first four are the toddler set: the colors with the most distinct names.
-const COLORS = [
-  { name: 'red', hex: '#ff4d4d' },
-  { name: 'yellow', hex: '#ffd23f' },
-  { name: 'blue', hex: '#3a86ff' },
-  { name: 'green', hex: '#3cc85a' },
-  { name: 'orange', hex: '#ff9f1c' },
-  { name: 'purple', hex: '#9b5de5' },
-  { name: 'pink', hex: '#ff70a6' },
-];
+// COLORS, SHAPES, LETTERS and WORDS live in phrases.js, next to what is said
+// about them.
 
-function starPoints(cx, cy, outer, inner) {
-  const pts = [];
-  for (let i = 0; i < 10; i++) {
-    const r = i % 2 ? inner : outer;
-    const a = -Math.PI / 2 + i * Math.PI / 5;
-    pts.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`);
-  }
-  return pts.join(' ');
-}
-
-// Shapes in a 100×100 box. The first three are the toddler set.
-const SHAPES = [
-  { id: 'circle', plural: 'circles', svg: '<circle cx="50" cy="50" r="38"/>' },
-  { id: 'star', plural: 'stars', svg: `<polygon points="${starPoints(50, 54, 46, 19)}"/>` },
-  { id: 'heart', plural: 'hearts',
-    svg: '<path d="M50 88C20 66 6 48 13 30 20 13 42 12 50 29 58 12 80 13 87 30 94 48 80 66 50 88Z"/>' },
-  { id: 'square', plural: 'squares', svg: '<rect x="16" y="16" width="68" height="68" rx="6"/>' },
-  { id: 'triangle', plural: 'triangles', svg: '<path d="M50 10 92 86H8Z"/>' },
-  { id: 'diamond', plural: 'diamonds', svg: '<path d="M50 6 88 50 50 94 12 50Z"/>' },
-  { id: 'moon', plural: 'moons', svg: '<path d="M64 8A43 43 0 1 0 92 70 34 34 0 1 1 64 8Z"/>' },
-];
 const shapeById = id => SHAPES.find(s => s.id === id);
-
-const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-
-// Words to spell, with a picture so a pre-reader knows what the word is.
-const WORDS = [
-  ['CAT', '🐱'], ['DOG', '🐶'], ['SUN', '☀️'], ['BUS', '🚌'], ['PIG', '🐷'], ['BEE', '🐝'],
-  ['COW', '🐮'], ['HAT', '🎩'], ['CAR', '🚗'], ['FOX', '🦊'], ['OWL', '🦉'], ['ANT', '🐜'],
-  ['EGG', '🥚'], ['BED', '🛏️'],
-  ['FISH', '🐟'], ['FROG', '🐸'], ['DUCK', '🦆'], ['BEAR', '🐻'], ['CAKE', '🎂'], ['STAR', '⭐'],
-  ['MOON', '🌙'], ['BOAT', '⛵'], ['TREE', '🌳'], ['BIRD', '🐦'], ['BALL', '⚽'], ['LION', '🦁'],
-  ['APPLE', '🍎'], ['HORSE', '🐴'], ['TRAIN', '🚆'], ['MOUSE', '🐭'], ['ZEBRA', '🦓'],
-  ['TIGER', '🐯'], ['CLOUD', '☁️'], ['SNAKE', '🐍'], ['HOUSE', '🏠'], ['TRUCK', '🚚'],
-].map(([word, pic]) => ({ word, pic }));
 
 function shapeSVG(id) {
   return `<svg viewBox="0 0 100 100" aria-hidden="true"><g class="shape">${shapeById(id).svg}</g></svg>`;
@@ -101,7 +58,10 @@ function mini(data) {
 /* -------------------------------------------------------------- settings */
 
 const SETTINGS_KEY = 'popBubbles.settings';
-const settings = { level: 'hatchling', sound: true, voice: true, name: '' };
+const settings = {
+  level: 'hatchling', sound: true, voice: true,
+  voiceName: '', rate: 0.9, pitch: 1.15,   // '' is the device's default voice
+};
 
 function loadSettings() {
   try {
@@ -118,7 +78,8 @@ function saveSettings() {
 function applySettings() {
   Sound.setSound(settings.sound);
   Sound.setVoice(settings.voice);
-  celebrate.childName = settings.name.trim();
+  Sound.setSpeech(settings);
+  Voice.setOn(settings.voice);
 }
 
 
@@ -127,21 +88,32 @@ function applySettings() {
  * Each mode decides what the next bubble looks like (spawn), which bubbles
  * count (wants), and what happens when one does (popped). round() starts a
  * new prompt. Between rounds, while the celebration plays, every bubble pops.
+ *
+ * Everything said is a sentence of clip ids from phrases.js (see voice.js):
+ * ['now-find', 'letter-b'], with ',' for a pause.
  * ----------------------------------------------------------------------- */
+
+// Say a new prompt, and remember it for a tap on the prompt (or a few misses).
+function ask(sentence) {
+  game.prompt = sentence;
+  Voice.say(sentence);
+}
+
+// "c, a, t" -- a word's letters with a pause between each
+const spelled = word => word.split('').flatMap((l, i) => (i ? [',', letterClip(l)] : [letterClip(l)]));
 
 const ROUND_GOAL = 6;   // right pops per round in the "pop the X" modes
 
 // "Pop the red ones!", "Pop the stars!", "Pop the letter B!" all work alike:
 // pick a target, make some bubbles that match it, count right pops.
-function targetMode({ choices, prompt, show, make }) {
+function targetMode({ choices, say, show, make }) {
   return {
     round() {
       const list = choices();
       game.target = game.target && list.length > 1 ? pickOther(list, game.target) : pick(list);
       game.got = 0;
       showPrompt(show(game.target), pips(ROUND_GOAL, 0));
-      game.promptText = prompt(game.target);
-      Sound.say(game.promptText);
+      ask(say(game.target));
     },
     spawn(wantTarget) {
       return make(wantTarget ? game.target : pickOther(choices(), game.target));
@@ -157,14 +129,54 @@ function targetMode({ choices, prompt, show, make }) {
 
 const keyOf = target => target.name || target.id || target;
 
+// A to Z, 1 to 20: pop them in order. The prompt shows a little window of the
+// run -- the last two popped, the one to find next, and the two after it.
+// Decoys come from nearby in the run, so the choice is B or C, not B or X.
+function sequenceMode({ items, clip, intro, outro }) {
+  const need = () => items[game.got];
+  const strip = () => {
+    let html = '';
+    for (let i = game.got - 2; i <= game.got + 2; i++) {
+      if (i < 0 || i >= items.length) continue;
+      const cls = i < game.got ? ' on' : i === game.got ? ' next' : '';
+      html += `<span class="slot${cls}">${items[i]}</span>`;
+    }
+    return html;
+  };
+  return {
+    round() {
+      game.got = 0;
+      showPrompt('', strip());
+      ask(intro);
+    },
+    spawn(wantTarget) {
+      const near = items.slice(Math.max(0, game.got - 3), game.got + 4);
+      return { color: pick(COLORS).hex, label: wantTarget ? need() : pickOther(near, need()) };
+    },
+    wants: data => data.label === need(),
+    popped() {
+      const popped = need();
+      game.got++;
+      setProgress(strip());
+      if (game.got >= items.length) {
+        finishRound([clip(popped), ',', outro], 300);
+        return;
+      }
+      // what a tap on the prompt (or a few misses) says from here on
+      game.prompt = ['now-find', clip(need())];
+      Voice.say(clip(popped));
+      if (game.got % 5 === 0) Sound.cheer();   // a little lift on the way
+    },
+  };
+}
+
 const MODES = {
   free: {
     tile: () => mini({ color: COLORS[2].hex }) + mini({ color: COLORS[6].hex }) + mini({ color: COLORS[3].hex }),
     label: 'Pop them all',
     round() {
       hidePrompt();
-      game.promptText = 'Pop the bubbles!';
-      Sound.say(game.promptText);
+      ask('pop-bubbles');
     },
     spawn: () => ({ color: pick(COLORS).hex }),
     wants: () => true,
@@ -177,7 +189,7 @@ const MODES = {
 
   colors: Object.assign(targetMode({
     choices: () => COLORS.slice(0, level().colors),
-    prompt: c => `Pop the ${c.name} ones!`,
+    say: c => `color-${c.name}`,
     show: c => mini({ color: c.hex, solid: true }),
     make: c => ({ color: c.hex, key: c.name, solid: true }),
   }), {
@@ -188,7 +200,7 @@ const MODES = {
 
   shapes: Object.assign(targetMode({
     choices: () => SHAPES.slice(0, level().shapes),
-    prompt: s => `Pop the ${s.plural}!`,
+    say: s => `shape-${s.id}`,
     show: s => mini({ color: '#ffd23f', shape: s.id }),
     make: s => ({ color: pick(COLORS).hex, shape: s.id, key: s.id }),
   }), {
@@ -199,7 +211,7 @@ const MODES = {
 
   letters: Object.assign(targetMode({
     choices: () => LETTERS,
-    prompt: l => `Pop the letter ${l}!`,
+    say: l => `find-letter-${l.toLowerCase()}`,
     show: l => (level().mixedCase ? `${l} ${l.toLowerCase()}` : l),
     // big kids get both cases, and both count: B and b are the same letter
     make: l => ({
@@ -208,30 +220,53 @@ const MODES = {
       key: l,
     }),
   }), {
-    tile: () => mini({ color: COLORS[0].hex, label: 'A' }) + mini({ color: COLORS[2].hex, label: 'B' }) +
-                mini({ color: COLORS[3].hex, label: 'C' }),
+    tile: () => mini({ color: COLORS[0].hex, label: 'B' }) + mini({ color: COLORS[2].hex, label: 'B' }) +
+                mini({ color: COLORS[3].hex, label: 'B' }),
     label: 'Letters',
   }),
 
-  numbers: {
+  abc: Object.assign(sequenceMode({
+    items: LETTERS,
+    clip: letterClip,
+    intro: 'abc-start',
+    outro: 'abc-done',
+  }), {
+    tile: () => mini({ color: COLORS[0].hex, label: 'A' }) + mini({ color: COLORS[2].hex, label: 'B' }) +
+                mini({ color: COLORS[3].hex, label: 'C' }),
+    label: 'A to Z',
+    stairs: true,
+  }),
+
+  count20: Object.assign(sequenceMode({
+    items: range(1, SEQUENCE_MAX).map(String),
+    clip: numberClip,
+    intro: 'count20-start',
+    outro: 'count20-done',
+  }), {
     tile: () => mini({ color: COLORS[4].hex, label: '1' }) + mini({ color: COLORS[5].hex, label: '2' }) +
                 mini({ color: COLORS[6].hex, label: '3' }),
+    label: '1 to 20',
+    stairs: true,
+  }),
+
+  numbers: {
+    tile: () => mini({ color: COLORS[4].hex, label: '3' }) + mini({ color: COLORS[5].hex }) +
+                mini({ color: COLORS[1].hex }),
     label: 'Counting',
     round() {
       const [lo, hi] = level().count;
       game.goal = game.goal ? pickOther(range(lo, hi), game.goal) : randInt(lo, hi);
       game.got = 0;
       showPrompt(`${game.goal}`, pips(game.goal, 0), 'count');
-      game.promptText = game.goal === 1 ? 'Pop 1 bubble!' : `Pop ${game.goal} bubbles!`;
-      Sound.say(game.promptText);
+      ask(`count-${game.goal}`);
     },
     spawn: () => ({ color: pick(COLORS).hex }),
     wants: () => true,
     popped() {
       game.got++;
       setProgress(pips(game.goal, game.got));
-      Sound.say(String(game.got));
-      if (game.got >= game.goal) finishRound(`You popped ${game.goal}!`, 700);
+      Voice.say(numberClip(game.got));
+      if (game.got >= game.goal) finishRound(`popped-${game.goal}`, 700);
     },
   },
 
@@ -246,8 +281,7 @@ const MODES = {
       game.got = 0;
       showPrompt(game.target.pic, slots());
       const word = game.target.word;
-      game.promptText = `Let's spell ${word.toLowerCase()}! ${word.split('').join(', ')}.`;
-      Sound.say(game.promptText);
+      ask(['spell-intro', wordClip(word), ',', ...spelled(word)]);
     },
     spawn(wantTarget) {
       const need = game.target.word[game.got];
@@ -259,19 +293,15 @@ const MODES = {
       setProgress(slots());
       const word = game.target.word;
       if (game.got < word.length) {
-        Sound.say(word[game.got - 1]);
+        Voice.say(letterClip(word[game.got - 1]));
       } else {
-        finishRound(`${word.split('').join(', ')}. ${word.toLowerCase()}!`, 300);
+        finishRound([...spelled(word), ',', wordClip(word)], 300);
       }
     },
   },
 };
 
-const MODE_ORDER = ['free', 'colors', 'shapes', 'letters', 'numbers', 'spell'];
-
-function range(lo, hi) {
-  return Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
-}
+const MODE_ORDER = ['free', 'colors', 'shapes', 'numbers', 'letters', 'abc', 'count20', 'spell'];
 
 
 /* ----------------------------------------------------------------- prompt */
@@ -316,7 +346,7 @@ const game = {
   goal: 0,
   got: 0,
   rounds: 0,
-  promptText: '',
+  prompt: null,      // the sentence a tap on the prompt says again
   wrongStreak: 0,
   t: 0,
   last: 0,
@@ -367,7 +397,7 @@ function startGame(modeId) {
 function stopGame() {
   game.running = false;
   game.session++;
-  Sound.hush();
+  Voice.stop();
   clearBubbles();
   $('play-screen').classList.add('hidden');
   $('menu-screen').classList.remove('hidden');
@@ -541,7 +571,7 @@ function wobble(b) {
   // a few misses in a row: say what we're looking for again
   if (++game.wrongStreak >= 3) {
     game.wrongStreak = 0;
-    Sound.say(game.promptText);
+    Voice.say(game.prompt);
   }
 }
 
@@ -604,7 +634,7 @@ function buildMenu() {
   modes.innerHTML = '';
   for (const id of MODE_ORDER) {
     const btn = document.createElement('button');
-    btn.className = 'mode-tile';
+    btn.className = 'mode-tile' + (MODES[id].stairs ? ' stairs' : '');
     btn.setAttribute('aria-label', MODES[id].label);
     btn.innerHTML = MODES[id].tile();
     btn.addEventListener('click', () => startGame(id));
@@ -635,14 +665,57 @@ function holdToOpen(btn, ms, open) {
 function openSettings() {
   $('set-sound').checked = settings.sound;
   $('set-voice').checked = settings.voice;
-  $('set-name').value = settings.name;
+  $('set-rate').value = settings.rate;
+  $('set-pitch').value = settings.pitch;
+  fillVoices();
+  showVoiceOptions();
   $('settings').classList.remove('hidden');
+}
+
+// Each device has its own voices, so the choice is saved per device. A saved
+// voice this device doesn't have shows as the default, and is kept as-is.
+function fillVoices() {
+  const select = $('set-voice-name');
+  const voices = Sound.voices();
+  // the list can arrive while the dialog is open; keep a pick not yet saved
+  const wanted = select.options.length && !$('settings').classList.contains('hidden')
+    ? select.value : settings.voiceName;
+  select.innerHTML = '';
+  select.add(new Option('Device default', ''));
+  for (const v of voices) {
+    const region = v.lang.replace(/^[a-z]+[-_]?/i, '');
+    select.add(new Option(region ? `${v.name} (${region})` : v.name, v.name));
+  }
+  select.value = voices.some(v => v.name === wanted) ? wanted : '';
+  const none = voices.length === 0;
+  $('voice-none').classList.toggle('hidden', !none);
+  select.closest('.setting').classList.toggle('hidden', none);
+}
+
+function showVoiceOptions() {
+  $('voice-options').classList.toggle('hidden', !$('set-voice').checked);
+}
+
+function readVoiceForm() {
+  settings.voiceName = $('set-voice-name').value;
+  settings.rate = Number($('set-rate').value);
+  settings.pitch = Number($('set-pitch').value);
+  Sound.setSpeech(settings);
+}
+
+const SAMPLES = ['Pop the red ones!', 'Great job!', 'Pop the letter B!', "Let's count to 20!", 'Hooray!'];
+let sample = 0;
+
+function trySpeech() {
+  readVoiceForm();
+  Sound.setVoice(true);
+  Sound.say(SAMPLES[sample++ % SAMPLES.length]);
 }
 
 function closeSettings() {
   settings.sound = $('set-sound').checked;
   settings.voice = $('set-voice').checked;
-  settings.name = $('set-name').value.trim();
+  readVoiceForm();
   saveSettings();
   applySettings();
   $('settings').classList.add('hidden');
@@ -678,9 +751,14 @@ function settleAfterRefresh() {
 /* -------------------------------------------------------------- wire up */
 
 $('btn-home').addEventListener('click', stopGame);
-$('prompt').addEventListener('click', () => Sound.say(game.promptText));
+$('prompt').addEventListener('click', () => Voice.say(game.prompt));
 $('btn-refresh').addEventListener('click', refreshApp);
 $('settings-done').addEventListener('click', closeSettings);
+$('set-voice').addEventListener('change', showVoiceOptions);
+$('voice-try').addEventListener('click', trySpeech);
+// hear each change as soon as it's made (a slider when it's let go)
+for (const id of ['set-voice-name', 'set-rate', 'set-pitch']) $(id).addEventListener('change', trySpeech);
+Sound.onVoices(() => { if (!$('settings').classList.contains('hidden')) fillVoices(); });
 holdToOpen($('btn-gear'), 2000, openSettings);
 
 window.addEventListener('resize', () => {
@@ -693,6 +771,11 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && game.running) stopGame();
 });
 
+// cheers come from the recorded clips too, when there are some
+celebrate.say = Voice.say;
+celebrate.phrases = CHEERS;
+
 settleAfterRefresh();
 loadSettings();
 buildMenu();
+Voice.load();
