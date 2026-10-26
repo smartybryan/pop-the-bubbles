@@ -295,7 +295,7 @@ const MODES = {
       if (game.got < word.length) {
         Voice.say(letterClip(word[game.got - 1]));
       } else {
-        finishRound([...spelled(word), ',', wordClip(word)], 300);
+        finishRound([letterClip(word[word.length - 1]), ',', wordClip(word)], 300);
       }
     },
   },
